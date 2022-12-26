@@ -2,6 +2,19 @@
 #include <vector>
 using namespace std;
 
+/*
+same problem diff name:
+    1. Number of Distinct islands
+*/
+
+/*
+
+1 1 0 1       1 1
+0 1 1 0   =>    1 1   ans = 6
+1 1 0 0       1 1
+
+*/
+
 int DFS(vector<vector<int>> &cake, vector<vector<bool>> &visited, int x, int y, int n)
 {
     if (visited[x][y])
