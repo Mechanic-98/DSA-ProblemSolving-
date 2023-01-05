@@ -13,15 +13,12 @@ to optimise->
 
 using namespace std;
 
-int w = 1; // don't know
-
 class TreeNode
 {
 public:
     bool isLocked;
-    bool isLockable;
+    bool isResourceInUse;
     int idThatLockedNode;
-    int ma; // ?? don't know
     int lockedDescendantCount;
     TreeNode *parentNode;
     vector<TreeNode *> childrenNodes;
@@ -29,9 +26,8 @@ public:
     TreeNode()
     {
         isLocked = false;
-        isLockable = true;
+        isResourceInUse = false;
         idThatLockedNode = -1;
-        ma = w++;
         lockedDescendantCount = 0;
         parentNode = NULL;
     }
@@ -39,9 +35,8 @@ public:
     TreeNode(TreeNode *parent)
     {
         isLocked = false;
-        isLockable = true;
+        isResourceInUse = false;
         idThatLockedNode = -1;
-        ma = w++;
         lockedDescendantCount = 0;
         parentNode = parent;
     }
@@ -49,17 +44,37 @@ public:
 
 bool locking(TreeNode *nodeToBeLocked, int uuid)
 {
+    // check if any other thread is working on this node
+    while (nodeToBeLocked->isResourceInUse)
+        ;
+    nodeToBeLocked->isResourceInUse = true; // marking the node as engaged
+
     // checking descendents by lockedDescendentCount
     if (nodeToBeLocked->isLocked ||
         nodeToBeLocked->lockedDescendantCount != 0)
+    {
+        nodeToBeLocked->isResourceInUse = false;
         return false;
-    TreeNode *currentNode = nodeToBeLocked;
+    }
 
     // checking ancestors O(H)
+    TreeNode *currentNode = nodeToBeLocked;
+    vector<TreeNode *> nodesInUse;
+    nodesInUse.push_back(currentNode);
     while (currentNode->parentNode != NULL)
     {
+        while (currentNode->parentNode->isResourceInUse)
+            ;
+        currentNode->parentNode->isResourceInUse = true;
+        nodesInUse.push_back(currentNode->parentNode);
         if (currentNode->parentNode->isLocked)
+        {
+            for (int i = 0; i < nodesInUse.size(); i++)
+            {
+                nodesInUse[i]->isResourceInUse = false;
+            }
             return false;
+        }
         currentNode = currentNode->parentNode;
     }
 
@@ -71,18 +86,26 @@ bool locking(TreeNode *nodeToBeLocked, int uuid)
     // informing ancestors O(H)
     while (currentNode->parentNode != NULL)
     {
+        currentNode->parentNode->isResourceInUse = false;
         currentNode->parentNode->lockedDescendantCount++;
         currentNode = currentNode->parentNode;
     }
 
+    currentNode->isResourceInUse = false;
     return true;
 }
 
 bool unlocking(TreeNode *nodeToBeUnlocked, int uuid)
 {
+    while (nodeToBeUnlocked->isResourceInUse)
+        ;
+    nodeToBeUnlocked->isResourceInUse = true;
     // checking if node can be unlocked
     if (!nodeToBeUnlocked->isLocked || (nodeToBeUnlocked->isLocked && uuid != nodeToBeUnlocked->idThatLockedNode))
+    {
+        nodeToBeUnlocked->isResourceInUse = false;
         return false;
+    }
 
     // Unlocking node O(1)
     nodeToBeUnlocked->isLocked = false;
@@ -92,26 +115,47 @@ bool unlocking(TreeNode *nodeToBeUnlocked, int uuid)
     TreeNode *currentNode = nodeToBeUnlocked;
     while (currentNode->parentNode != NULL)
     {
+        while (currentNode->parentNode->isResourceInUse)
+            ;
         currentNode->parentNode->lockedDescendantCount--;
         currentNode = currentNode->parentNode;
     }
 
+    nodeToBeUnlocked->isResourceInUse = false;
     return true;
 }
 
 // O(N * (logN base m))
 bool upgrade(TreeNode *nodeToBeUpgraded, int uuid)
 {
+    while (nodeToBeUpgraded->isResourceInUse)
+        ;
+    nodeToBeUpgraded->isResourceInUse = true;
     // checking node
     if (nodeToBeUpgraded->isLocked)
+    {
+        nodeToBeUpgraded->isResourceInUse = false;
         return false;
-    TreeNode *currentNode = nodeToBeUpgraded;
+    }
 
     // checking ancestors O(H)
+    TreeNode *currentNode = nodeToBeUpgraded;
+    vector<TreeNode *> nodesInUse;
+    nodesInUse.push_back(currentNode);
     while (currentNode->parentNode != NULL)
     {
+        while (currentNode->parentNode->isResourceInUse)
+            ;
+        currentNode->parentNode->isResourceInUse = true;
+        nodesInUse.push_back(currentNode->parentNode);
         if (currentNode->parentNode->isLocked)
+        {
+            for (int i = 0; i < nodesInUse.size(); i++)
+            {
+                nodesInUse[i]->isResourceInUse = false;
+            }
             return false;
+        }
         currentNode = currentNode->parentNode;
     }
 
@@ -128,8 +172,18 @@ bool upgrade(TreeNode *nodeToBeUpgraded, int uuid)
 
         for (TreeNode *childNode : frontNode->childrenNodes)
         {
+            while (childNode->isResourceInUse)
+                ;
+            childNode->isResourceInUse = true;
+            nodesInUse.push_back(childNode);
             if (childNode->isLocked && childNode->idThatLockedNode != uuid)
+            {
+                for (int i = 0; i < nodesInUse.size(); i++)
+                {
+                    nodesInUse[i]->isResourceInUse = false;
+                }
                 return false;
+            }
             if (childNode->isLocked)
                 isUpgradePossible = true;
             pendingNodes.push(childNode);
@@ -137,11 +191,16 @@ bool upgrade(TreeNode *nodeToBeUpgraded, int uuid)
     }
 
     if (!isUpgradePossible)
+    {
+        for (int i = 0; i < nodesInUse.size(); i++)
+        {
+            nodesInUse[i]->isResourceInUse = false;
+        }
         return false;
+    }
 
+    // unlocking all descendents O(N X H) => O(N * logN)
     pendingNodes.push(currentNode);
-
-    // unlocking all descendents O(N X H)
     while (!pendingNodes.empty())
     {
         TreeNode *frontNode = pendingNodes.front();
@@ -149,16 +208,23 @@ bool upgrade(TreeNode *nodeToBeUpgraded, int uuid)
 
         for (TreeNode *childNode : frontNode->childrenNodes)
         {
+            while (childNode->isResourceInUse)
+                ;
             if (childNode->isLocked)
             {
-                if (!unlocking(childNode, uuid))
+                for (int i = 0; i < nodesInUse.size(); i++)
+                {
+                    nodesInUse[i]->isResourceInUse = false;
+                }
+                if (!unlocking(childNode, uuid)) // O(H)
                     return false;
             }
+            childNode->isResourceInUse = false;
             pendingNodes.push(childNode);
         }
     }
 
-    return locking(nodeToBeUpgraded, uuid);
+    return locking(nodeToBeUpgraded, uuid); // O(H)
 }
 
 int main()
@@ -228,3 +294,11 @@ int main()
 
     return 0;
 }
+
+/*
+Upgrade:
+1. Is node locked or not? O(1)
+2. checking ancestors O(H)
+3. checking descendents O(N)
+4. unlocking all descendents O(K X H) => O(K * logN(base m)) where; k is number of locked descendents
+*/

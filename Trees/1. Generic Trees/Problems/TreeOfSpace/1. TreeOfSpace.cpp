@@ -95,15 +95,12 @@ Additional Notes:
 
 using namespace std;
 
-int w = 1; // don't know
-
 class TreeNode
 {
 public:
     bool isLocked;
     bool isLockable; // to check ancestors
     int idThatLockedNode;
-    int ma; // ?? don't know
     TreeNode *parentNode;
     vector<TreeNode *> childrenNodes;
 
@@ -112,7 +109,6 @@ public:
         isLocked = false;
         isLockable = true;
         idThatLockedNode = -1;
-        ma = w++;
         parentNode = NULL;
     }
 
@@ -121,13 +117,12 @@ public:
         isLocked = false;
         isLockable = true;
         idThatLockedNode = -1;
-        ma = w++;
         parentNode = parent;
     }
 };
 
 // T.C. O(numberOfNodes)
-bool locking(TreeNode *nodeToBeLocked, int uuid)
+bool locking(TreeNode *nodeToBeLocked, int uuid) // change name to lock
 {
     // checking ancestors by isLockable
     if (nodeToBeLocked->isLocked || !nodeToBeLocked->isLockable)
@@ -150,7 +145,7 @@ bool locking(TreeNode *nodeToBeLocked, int uuid)
         }
     }
 
-    nodeToBeLocked->idThatLockedNode = uuid;
+    nodeToBeLocked->idThatLockedNode = uuid; // check if name can be changed?
     nodeToBeLocked->isLocked = true;
     pendingNodes.push(currentNode);
 
@@ -197,7 +192,7 @@ bool unlocking(TreeNode *nodeTobeUnlocked, int uuid)
     return true;
 }
 
-bool upgrade(TreeNode *nodeToBeUpgraded, int uuid)
+bool upgrade(TreeNode *nodeToBeUpgraded, int uuid) // O(N*N)
 {
     // checking ancestors
     if (nodeToBeUpgraded->isLockable == false || nodeToBeUpgraded->isLocked)
@@ -238,7 +233,7 @@ bool upgrade(TreeNode *nodeToBeUpgraded, int uuid)
         {
             if (childNode->isLocked)
             {
-                if (!unlocking(childNode, uuid))
+                if (!unlocking(childNode, uuid)) // O(N)
                     return false;
             }
             pendingNodes.push(childNode);

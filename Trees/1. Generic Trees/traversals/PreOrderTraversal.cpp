@@ -2,13 +2,16 @@
 #include "TreeNode.h"
 using namespace std;
 
-void preOrderTraversal(TreeNode<int>* root){  // root first
-    if(!root) return;
+void preOrderTraversal(TreeNode<int> *root)
+{   // root first
+    // edge case
+    if (!root)
+        return;
 
-    cout<<root->data<<" ";
+    cout << root->data << " ";
     int numberOfChildren = root->children.size();
-    for(int i=0; i<numberOfChildren; i++){
+    for (int i = 0; i < numberOfChildren; i++)
+    {
         preOrderTraversal(root->children[i]);
     }
 }
-

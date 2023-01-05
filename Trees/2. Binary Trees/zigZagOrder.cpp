@@ -1,36 +1,40 @@
 #include <iostream>
-#include <stack>
+#include <vector>
+#include <queue>
 #include "BinaryTreeNode.h"
 using namespace std;
 
-void zigZagOrder(BinaryTreeNode<int> *root) {
-    if(!root) return;
-    
-    stack<BinaryTreeNode<int>*> currentLevel;
-    stack<BinaryTreeNode<int>*> nextLevel;
+vector<vector<int>> zigzagLevelOrder(BinaryTreeNode *root)
+{
+    vector<vector<int>> zigzagTraversal;
+    if (!root)
+        return zigzagTraversal;
+
     bool leftToRight = true;
-    
-    currentLevel.push(root); 
-    
-    while(!currentLevel.empty()) {
-        BinaryTreeNode<int>* topNode = currentLevel.top(); currentLevel.pop();
-        
-        if(topNode) {
-            cout<<topNode->data<<" ";
-            if(leftToRight) {
-                if(topNode->left) nextLevel.push(topNode->left);
-                if(topNode->right) nextLevel.push(topNode->right);
-            } else {
-                if(topNode->right) nextLevel.push(topNode->right);
-                if(topNode->left) nextLevel.push(topNode->left);
-            }
-        } 
-        
-        if(currentLevel.empty()) {
-            cout<<'\n';
-            swap(currentLevel, nextLevel);
-            leftToRight = !leftToRight;
+    queue<BinaryTreeNode *> pendingNodes;
+    pendingNodes.push(root);
+
+    while (!pendingNodes.empty())
+    {
+        int numberOfNodes = pendingNodes.size();
+        vector<int> dataPerLevel(numberOfNodes);
+
+        for (int i = 0; i < numberOfNodes; i++)
+        {
+            BinaryTreeNode *currentNode = pendingNodes.front();
+            pendingNodes.pop();
+            int index = leftToRight ? i : numberOfNodes - 1 - i;
+            dataPerLevel[index] = currentNode->val;
+
+            if (currentNode->left)
+                pendingNodes.push(currentNode->left);
+            if (currentNode->right)
+                pendingNodes.push(currentNode->right);
         }
+
+        leftToRight = !leftToRight;
+        zigzagTraversal.push_back(dataPerLevel);
     }
-    
+
+    return zigzagTraversal;
 }
