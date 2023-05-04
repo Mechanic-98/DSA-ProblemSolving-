@@ -1,30 +1,44 @@
 #include <iostream>
 using namespace std;
 
-class Node
-{   public:
-    int data;
-    Node *next;
-    Node(int val)
+class ListNode
+{
+public:
+    int val;
+    ListNode *next;
+    ListNode(int val)
     {
-        data=val;
-        next=NULL;
+        this->val = val;
+        next = NULL;
     }
 };
 
-Node* addTwoNumbers(Node* l1, Node* l2) {
-    int carryOver = 0;
-    Node* newHead = new Node(0);
-    Node* temp = newHead;
-    while(carryOver || l1 || l2) {
-        carryOver += (l1 ? l1->data : 0) + (l2 ? l2->data : 0);
-        temp->next = new Node(carryOver % 10);
-        temp = temp->next;
-        carryOver /= 10;
-            
-        if(l1) l1 = l1->next;
-        if(l2) l2 = l2->next;
+class Solution
+{
+public:
+    ListNode *addTwoNumbers(ListNode *l1, ListNode *l2)
+    {
+        int carryOver = 0;
+        ListNode *newHead = new ListNode(0); // Dummy node
+        ListNode *tempNode = newHead;        // to traverse
+
+        while (carryOver || l1 || l2)
+        {
+            // use carry to compute
+            carryOver += (l1 ? l1->val : 0) + (l2 ? l2->val : 0);
+            tempNode->next = new ListNode(carryOver % 10);
+
+            // move nodes
+            tempNode = tempNode->next;
+            if (l1)
+                l1 = l1->next;
+            if (l2)
+                l2 = l2->next;
+
+            // update carry
+            carryOver /= 10;
+        }
+
+        return newHead->next;
     }
-        
-    return newHead->next;
-}
+};
